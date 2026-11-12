@@ -1,6 +1,6 @@
 {
   "name": "@zamanapp/tashfir",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Post-quantum envelope encryption, key wraps, composite signatures and file encryption, written once over a provider for each runtime.",
   "type": "module",
   "exports": {
