@@ -1,0 +1,83 @@
+{
+  "name": "@zamanapp/tashfir",
+  "version": "0.0.0",
+  "description": "Post-quantum envelope encryption, key wraps, composite signatures and file encryption, written once over a provider for each runtime.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/providers/node.d.ts",
+      "default": "./dist/providers/node.js"
+    },
+    "./web": {
+      "types": "./dist/providers/web.d.ts",
+      "default": "./dist/providers/web.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    }
+  },
+  "files": [
+    "dist",
+    "vectors",
+    "LICENSE.md",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:node": "vitest run --project node",
+    "test:browser": "vitest run --project browser",
+    "test:watch": "vitest",
+    "vectors": "node scripts/generate_vectors.ts",
+    "prepublishOnly": "pnpm run build && pnpm run test",
+    "release": "semantic-release"
+  },
+  "packageManager": "pnpm@12.8.2",
+  "engines": {
+    "node": ">=26"
+  },
+  "dependencies": {
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@noble/post-quantum": "0.7.1",
+    "cborg": "6.2.1",
+    "uuid": "14.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "@vitest/browser-playwright": "4.1.12",
+    "playwright": "1.61.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.12"
+  },
+  "keywords": [
+    "encryption",
+    "post-quantum",
+    "x-wing",
+    "ml-kem",
+    "ml-dsa",
+    "hpke",
+    "end-to-end encryption"
+  ],
+  "author": "Zaman",
+  "license": "FSL-1.1-ALv2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zamanapp/tashfir.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zamanapp/tashfir/issues"
+  },
+  "homepage": "https://github.com/zamanapp/tashfir#readme"
+}

@@ -1,0 +1,9 @@
+# pnpm reads settings from here, not the "pnpm" field in package.json.
+# esbuild (pulled in by vitest) needs its postinstall to link its platform binary; pnpm blocks
+# dependency build scripts by default.
+allowBuilds:
+  esbuild: true
+# Supply-chain hardening for a crypto library: wait a week before installing a newly published
+# version, so a compromised release is usually caught and unpublished first.
+minimumReleaseAge: 10080
+trustPolicy: no-downgrade
