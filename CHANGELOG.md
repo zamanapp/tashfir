@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/zamanapp/tashfir/compare/v1.0.0...v1.1.0) (2026-11-13)
+
+
+### Features
+
+* public key registry entries and their chain rules ([512a67d](https://github.com/zamanapp/tashfir/commit/512a67dd9c8e22d5033eaac042840eb8997c41b5))
+
 # 1.0.0 (2026-11-12)
 
 
