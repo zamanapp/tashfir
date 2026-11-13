@@ -12,6 +12,12 @@ import { wrapKeyToPublicKeyWith } from '../src/hpke.ts'
 import { WebCryptoProvider } from '../src/providers/web.ts'
 import { signingPublicKey, signWith } from '../src/signature.ts'
 import { encryptFileWith } from '../src/stream.ts'
+import {
+  encodeRegistryEntry,
+  registryEntryHash,
+  signRegistryEntryWith,
+  type RegistryEntry,
+} from '../src/registry.ts'
 import { storageKey } from '../src/storage_key.ts'
 import { currentSuite } from '../src/suites.ts'
 import { fixedBytes, patternBytes } from '../tests/fixtures.ts'
@@ -57,6 +63,46 @@ const fileLengths = [
   suite.fileSegmentSize + 1,
   3 * suite.fileSegmentSize - 7,
 ]
+
+const registryAccountId = '0192f7a0-0000-7000-8000-0000000000c1'
+const registryIdentity = {
+  id: '0192f7a0-0000-7000-8000-0000000000c2',
+  secretKey: fixedBytes(64, 0x30),
+}
+const registryKem = { id: '0192f7a0-0000-7000-8000-0000000000c3', secretKey: fixedBytes(32, 0x58) }
+const registrySignatureRandomness = [fixedBytes(32, 0xd8), fixedBytes(32, 0xe8)]
+const registryIdentityPublicKey = await signingPublicKey(provider, registryIdentity.secretKey)
+const registryKemPublicKey = await provider.xWingPublicKey(registryKem.secretKey)
+
+const registryEntries: RegistryEntry[] = [
+  {
+    formatVersion: 1,
+    accountId: registryAccountId,
+    sequence: 0,
+    previousHash: null,
+    kind: 'publish',
+    keyId: registryIdentity.id,
+    purpose: 'identity',
+    algorithm: 'mldsa65-ed25519',
+    publicKey: registryIdentityPublicKey,
+    revocationReason: null,
+    signerKeyId: registryIdentity.id,
+  },
+]
+const firstEntryBytes = encodeRegistryEntry(registryEntries[0]!)
+registryEntries.push({
+  formatVersion: 1,
+  accountId: registryAccountId,
+  sequence: 1,
+  previousHash: await registryEntryHash(provider, firstEntryBytes),
+  kind: 'publish',
+  keyId: registryKem.id,
+  purpose: 'account-kem',
+  algorithm: 'xwing-draft-11',
+  publicKey: registryKemPublicKey,
+  revocationReason: null,
+  signerKeyId: registryIdentity.id,
+})
 
 const vectors = {
   description:
@@ -111,6 +157,35 @@ const vectors = {
     signature: toHex(
       await signWith(provider, signingSecretKey, message, signatureContext, {
         randomness: signatureRandomness,
+      })
+    ),
+  },
+  registry: {
+    accountId: registryAccountId,
+    identity: {
+      id: registryIdentity.id,
+      secretKey: toHex(registryIdentity.secretKey),
+      publicKey: toHex(registryIdentityPublicKey),
+    },
+    kem: {
+      id: registryKem.id,
+      secretKey: toHex(registryKem.secretKey),
+      publicKey: toHex(registryKemPublicKey),
+    },
+    entries: await Promise.all(
+      registryEntries.map(async (entry, index) => {
+        const entryBytes = encodeRegistryEntry(entry)
+        const randomness = registrySignatureRandomness[index]!
+        return {
+          entryBytes: toHex(entryBytes),
+          hash: toHex(await registryEntryHash(provider, entryBytes)),
+          randomness: toHex(randomness),
+          signature: toHex(
+            await signRegistryEntryWith(provider, registryIdentity.secretKey, entryBytes, {
+              randomness,
+            })
+          ),
+        }
       })
     ),
   },

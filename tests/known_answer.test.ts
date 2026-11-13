@@ -7,6 +7,13 @@ import { unwrapKeyWithSecretKey, wrapKeyToPublicKeyWith } from '../src/hpke.ts'
 import { signingPublicKey, signWith, verify } from '../src/signature.ts'
 import { storageKey } from '../src/storage_key.ts'
 import { decryptFile, encryptFileWith } from '../src/stream.ts'
+import {
+  decodeRegistryEntry,
+  encodeRegistryEntry,
+  registryEntryHash,
+  replayRegistryChain,
+  signRegistryEntryWith,
+} from '../src/registry.ts'
 import vectors from '../vectors/known-answer/suite-01.json' with { type: 'json' }
 import { hex, patternBytes } from './fixtures.ts'
 import { providers } from './providers.ts'
@@ -121,6 +128,47 @@ describe.each(providers)('known-answer vectors of suite 0x01 ($name)', (provider
       expect(await decryptFile(provider, key(files.key), encrypted)).toEqual(plaintext)
     }
   })
+
+  test('registry: entry bytes, hashes and the chain', async () => {
+    const { registry } = vectors
+    expect(toHex(await provider.xWingPublicKey(hex(registry.kem.secretKey)))).toBe(
+      registry.kem.publicKey
+    )
+    for (const vectorEntry of registry.entries) {
+      const entryBytes = hex(vectorEntry.entryBytes)
+      expect(toHex(encodeRegistryEntry(decodeRegistryEntry(entryBytes)))).toBe(
+        vectorEntry.entryBytes
+      )
+      expect(toHex(await registryEntryHash(provider, entryBytes))).toBe(vectorEntry.hash)
+    }
+    const chain = await replayRegistryChain(
+      provider,
+      registry.accountId,
+      registry.entries.map((vectorEntry) => ({
+        entryBytes: hex(vectorEntry.entryBytes),
+        signature: hex(vectorEntry.signature),
+      }))
+    )
+    expect(chain.nextSequence).toBe(2)
+    expect(toHex(chain.headHash!)).toBe(registry.entries[1]!.hash)
+    expect(toHex(chain.keys.get(registry.kem.id)!.publicKey)).toBe(registry.kem.publicKey)
+  })
+
+  test.skipIf(!provider.acceptsInjectedRandomness)(
+    'registry: sign with the randomness',
+    async () => {
+      const { registry } = vectors
+      for (const vectorEntry of registry.entries) {
+        const signature = await signRegistryEntryWith(
+          provider,
+          hex(registry.identity.secretKey),
+          hex(vectorEntry.entryBytes),
+          { randomness: hex(vectorEntry.randomness) }
+        )
+        expect(toHex(signature)).toBe(vectorEntry.signature)
+      }
+    }
+  )
 
   test('the field envelope does not open in another row', async () => {
     const { field } = vectors

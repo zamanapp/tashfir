@@ -5,6 +5,8 @@ export {
   suiteForReading,
   ENVELOPE_VERSION,
   SIGNATURE_ALGORITHMS,
+  KEM_ALGORITHMS,
+  type KemAlgorithm,
   type Suite,
   type SuiteState,
   type SignatureAlgorithm,
@@ -53,5 +55,24 @@ export {
   FILE_HEADER_LENGTH,
   type FileHeader,
 } from './stream.ts'
+export {
+  REGISTRY_FORMAT_VERSION,
+  REGISTRY_HASH_LENGTH,
+  encodeRegistryEntry,
+  decodeRegistryEntry,
+  registryEntryHash,
+  signRegistryEntry,
+  verifyRegistryEntrySignature,
+  emptyRegistryChain,
+  appendRegistryEntry,
+  replayRegistryChain,
+  type RegistryEntry,
+  type RegistryEntryKind,
+  type RegistryKeyPurpose,
+  type RevocationReason,
+  type RegistryKey,
+  type RegistryChain,
+  type SignedRegistryEntry,
+} from './registry.ts'
 export { hkdf } from './hkdf.ts'
 export { storageKey } from './storage_key.ts'

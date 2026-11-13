@@ -9,12 +9,20 @@ export function encodeCbor(value: unknown): Uint8Array {
 
 /**
  * Accepts only deterministic CBOR. A second encoding of one value would let two parties sign or
- * hash different bytes for the same blob, so a non-canonical input is rejected.
+ * hash different bytes for the same blob, so a non-canonical input is rejected. `useMaps` decodes
+ * maps into `Map`, for maps with integer keys.
  */
-export function decodeCbor<Value = unknown>(bytes: Uint8Array): Value {
+export function decodeCbor<Value = unknown>(
+  bytes: Uint8Array,
+  options: { useMaps?: boolean } = {}
+): Value {
   let value: Value
   try {
-    value = decode(bytes, { strict: true, rejectDuplicateMapKeys: true }) as Value
+    value = decode(bytes, {
+      strict: true,
+      rejectDuplicateMapKeys: true,
+      useMaps: options.useMaps ?? false,
+    }) as Value
   } catch (error) {
     throw new CryptoError('E_MALFORMED', 'The blob is not valid CBOR', { cause: error })
   }

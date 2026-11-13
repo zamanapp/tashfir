@@ -11,6 +11,7 @@ export {
   type HpkeContext,
 } from './hpke.ts'
 export { signWith } from './signature.ts'
+export { signRegistryEntryWith } from './registry.ts'
 export { encryptFileWith } from './stream.ts'
 export { hkdfExtract, hkdfExpand } from './hkdf.ts'
 export { pad, unpad } from './padding.ts'

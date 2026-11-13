@@ -31,10 +31,15 @@ npm won't let you configure a trusted publisher until the package already exists
    | Organization or user | `zamanapp` |
    | Repository | `tashfir` |
    | Workflow filename | `ci.yml` |
-   | Allowed action | npm publish |
+   | Environment name | (empty) |
+   | Allowed actions | **Tick** direct publish with `npm publish`. Leave **Allow npm dist-tag** off. |
 
-   Fields are case-sensitive and are **not** validated on save: a typo only surfaces at publish time.
+   `npm stage publish` is always allowed; direct `npm publish` is opt-in. Without it, CI can only stage a release, and semantic-release fails. `Allow npm dist-tag` is only for explicit `npm dist-tag` commands, which semantic-release runs only to move a release between channels (for example `next` to `latest`).
+
+   Fields are case-sensitive and are **not** validated on save: a typo only surfaces at publish time. A saved publisher cannot be edited: to change it, delete it and add it again. **The first publish must happen within 2 days**, or the publisher expires.
 
 3. **Release for real.** Push a conventional commit to `main`. semantic-release publishes the first real version (`1.0.0`), which supersedes the `0.0.0` stub.
+
+4. **Lock token publishing.** After `1.0.0` is out, go to Settings → Publishing access, select **Require two-factor authentication and disallow tokens**, and click **Update Package Settings**. The trusted publisher keeps working: it uses OIDC, not a token.
 
 Every later release is a push to `main`.

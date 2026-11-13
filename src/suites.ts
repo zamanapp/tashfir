@@ -58,3 +58,15 @@ export const SIGNATURE_ALGORITHMS: Readonly<
     description: 'Composite ML-DSA-65 + Ed25519 (id-MLDSA65-Ed25519-SHA512, RFC 10073)',
   },
 }
+
+export type KemAlgorithm = 'xwing-draft-11'
+
+/** The `algorithm` of a KEM public key in the registry. */
+export const KEM_ALGORITHMS: Readonly<
+  Record<KemAlgorithm, { state: SuiteState; description: string }>
+> = {
+  'xwing-draft-11': {
+    state: 'current',
+    description: 'X-Wing (draft-connolly-cfrg-xwing-kem-11), the KEM of suite 0x01',
+  },
+}

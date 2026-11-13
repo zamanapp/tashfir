@@ -7,6 +7,7 @@ export type CryptoErrorCode =
   | 'E_MALFORMED'
   | 'E_INVALID_INPUT'
   | 'E_UNSUPPORTED'
+  | 'E_REGISTRY_REJECTED'
 
 /**
  * Every failure of this package. The message never holds key bytes or plaintext, so a caller

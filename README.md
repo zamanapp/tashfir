@@ -20,7 +20,7 @@ Pin the exact version: a new release can add a suite, and every runtime of an ap
 
 | Import | Contents |
 | ------ | -------- |
-| `@zamanapp/tashfir` | The formats: envelope, key wraps, HPKE wraps, composite signatures, STREAM files, CBOR, the suite registry |
+| `@zamanapp/tashfir` | The formats: envelope, key wraps, HPKE wraps, composite signatures, STREAM files, CBOR, registry entries and their chain rules, the suite registry |
 | `@zamanapp/tashfir/node` | `NodeCryptoProvider`: Node `crypto` with OpenSSL 3.5 or later. For the server only. |
 | `@zamanapp/tashfir/web` | `WebCryptoProvider`: `@noble/post-quantum`, `@noble/curves` and WebCrypto. For the browser and the Electron renderer. |
 | `@zamanapp/tashfir/testing` | The same operations with injected randomness, for the test vectors only. Never import it in app code. |
@@ -53,6 +53,7 @@ The context goes into the associated data. A ciphertext opens only in its own bl
 | Signature | Composite ML-DSA-65 + Ed25519, `id-MLDSA65-Ed25519-SHA512` of RFC 10073 | 3373 B |
 | File | version (1) ‖ suite ID (1) ‖ file key UUID (16) ‖ nonce prefix (7), then 64 KiB segments, each with a 16-byte tag. Segment nonce: prefix ‖ counter (4) ‖ last flag (1). | +41 B, +16 B for each segment |
 | Storage key | BLAKE3 of the encrypted file, in hex | 64 characters |
+| Registry entry | Deterministic CBOR map with integer keys: 0 format version, 1 account UUID, 2 sequence, 3 previous hash, 4 kind (`publish`, `revoke`, `reset`), 5 key UUID, 6 purpose (`identity`, `account-kem`), 7 algorithm, 8 public key, 9 revocation reason, 10 signer key UUID. Hash: SHA-256(`tashfir-registry-entry-hash-v1` ‖ bytes). Signed by an identity key with the context `tashfir-registry-entry-v1`. `appendRegistryEntry` checks the chain rules. | About 2 KB for an identity key |
 
 X-Wing follows `draft-connolly-cfrg-xwing-kem-11`. A new draft version is a new suite ID, never a change of suite `0x01`.
 
