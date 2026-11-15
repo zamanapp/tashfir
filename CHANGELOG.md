@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/zamanapp/tashfir/compare/v1.1.0...v1.2.0) (2026-11-15)
+
+
+### Features
+
+* name the registry key purposes signing and encryption ([06a0ca0](https://github.com/zamanapp/tashfir/commit/06a0ca0badda02129f6de36de76c0d715966c60b))
+
 # [1.1.0](https://github.com/zamanapp/tashfir/compare/v1.0.0...v1.1.0) (2026-11-13)
 
 
