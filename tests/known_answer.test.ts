@@ -14,6 +14,17 @@ import {
   replayRegistryChain,
   signRegistryEntryWith,
 } from '../src/registry.ts'
+import { passwordUnlockKey } from '../src/account_keys.ts'
+import {
+  recoveryKeyFromCode,
+  recoveryKeyFromQrPayload,
+  recoveryKeyFromWords,
+  recoveryKeyToCode,
+  recoveryKeyToWords,
+  recoveryProof,
+  recoveryQrPayload,
+  recoveryUnlockKey,
+} from '../src/recovery.ts'
 import vectors from '../vectors/known-answer/suite-01.json' with { type: 'json' }
 import { hex, patternBytes } from './fixtures.ts'
 import { providers } from './providers.ts'
@@ -169,6 +180,25 @@ describe.each(providers)('known-answer vectors of suite 0x01 ($name)', (provider
       }
     }
   )
+
+  test('unlock keys: password and recovery', async () => {
+    const id = '0192f7a0-0000-7000-8000-0000000000d1'
+    const { exportKey, recoveryKey } = vectors.unlockKeys
+    expect(toHex((await passwordUnlockKey(provider, hex(exportKey), id)).bytes)).toBe(vectors.unlockKeys.passwordUnlockKey)
+    expect(toHex((await recoveryUnlockKey(provider, hex(recoveryKey), id)).bytes)).toBe(vectors.unlockKeys.recoveryUnlockKey)
+    expect(toHex(await recoveryProof(provider, hex(recoveryKey)))).toBe(vectors.unlockKeys.recoveryProof)
+  })
+
+  test('recovery key forms: words, code and QR payload', async () => {
+    const forms = vectors.recoveryKeyForms
+    const recoveryKey = hex(forms.recoveryKey)
+    expect(recoveryKeyToWords(recoveryKey)).toEqual(forms.words)
+    expect(await recoveryKeyToCode(provider, recoveryKey)).toBe(forms.code)
+    expect(await recoveryQrPayload(provider, recoveryKey)).toBe(forms.qrPayload)
+    expect(toHex(recoveryKeyFromWords(forms.words))).toBe(forms.recoveryKey)
+    expect(toHex(await recoveryKeyFromCode(provider, forms.code))).toBe(forms.recoveryKey)
+    expect(toHex(await recoveryKeyFromQrPayload(provider, forms.qrPayload))).toBe(forms.recoveryKey)
+  })
 
   test('the field envelope does not open in another row', async () => {
     const { field } = vectors

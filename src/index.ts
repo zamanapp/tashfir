@@ -74,5 +74,31 @@ export {
   type RegistryChain,
   type SignedRegistryEntry,
 } from './registry.ts'
+export {
+  createAccountKeys,
+  passwordUnlockKey,
+  wrapAccountKeyForPassword,
+  openAccountKeyWithPassword,
+  wrapSecretKey,
+  openSecretKey,
+  type AccountKeys,
+  type AccountKeyBundle,
+  type AccountKeyPair,
+} from './account_keys.ts'
+export {
+  RECOVERY_KEY_LENGTH,
+  generateRecoveryKey,
+  recoveryKeyToWords,
+  recoveryKeyFromWords,
+  recoveryKeyToCode,
+  recoveryKeyFromCode,
+  recoveryQrPayload,
+  recoveryKeyFromQrPayload,
+  recoveryProof,
+  createRecoveryKit,
+  openAccountKeyWithRecoveryKey,
+  openRecoveryKeyCopy,
+  type RecoveryKit,
+} from './recovery.ts'
 export { hkdf } from './hkdf.ts'
 export { storageKey } from './storage_key.ts'

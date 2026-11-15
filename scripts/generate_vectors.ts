@@ -19,6 +19,14 @@ import {
   type RegistryEntry,
 } from '../src/registry.ts'
 import { storageKey } from '../src/storage_key.ts'
+import { passwordUnlockKey } from '../src/account_keys.ts'
+import {
+  recoveryKeyToCode,
+  recoveryKeyToWords,
+  recoveryProof,
+  recoveryQrPayload,
+  recoveryUnlockKey,
+} from '../src/recovery.ts'
 import { currentSuite } from '../src/suites.ts'
 import { fixedBytes, patternBytes } from '../tests/fixtures.ts'
 
@@ -104,6 +112,10 @@ registryEntries.push({
   signerKeyId: registrySigningKey.id,
 })
 
+const exportKey = fixedBytes(64, 0x41)
+const recoveryKey = fixedBytes(32, 0x10)
+const unlockKeyId = '0192f7a0-0000-7000-8000-0000000000d1'
+
 const vectors = {
   description:
     'Known-answer vectors of suite 0x01. Every runtime must give these bytes for these inputs, or open them.',
@@ -188,6 +200,21 @@ const vectors = {
         }
       })
     ),
+  },
+  unlockKeys: {
+    description:
+      'The keys of the unlock wraps of the account key: HKDF-SHA-256 of the OPAQUE export key, and of the recovery key.',
+    exportKey: toHex(exportKey),
+    passwordUnlockKey: toHex((await passwordUnlockKey(provider, exportKey, unlockKeyId)).bytes),
+    recoveryKey: toHex(recoveryKey),
+    recoveryUnlockKey: toHex((await recoveryUnlockKey(provider, recoveryKey, unlockKeyId)).bytes),
+    recoveryProof: toHex(await recoveryProof(provider, recoveryKey)),
+  },
+  recoveryKeyForms: {
+    recoveryKey: toHex(recoveryKey),
+    words: recoveryKeyToWords(recoveryKey),
+    code: await recoveryKeyToCode(provider, recoveryKey),
+    qrPayload: await recoveryQrPayload(provider, recoveryKey),
   },
   files: {
     key: { id: fileKey.id, bytes: toHex(fileKey.bytes) },

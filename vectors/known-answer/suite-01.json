@@ -86,6 +86,45 @@
       }
     ]
   },
+  "unlockKeys": {
+    "description": "The keys of the unlock wraps of the account key: HKDF-SHA-256 of the OPAQUE export key, and of the recovery key.",
+    "exportKey": "4142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f80",
+    "passwordUnlockKey": "8a3dfeb358525b800ed80b58ce02e8d68fbeb81daf8c020cb70eac4bfc741316",
+    "recoveryKey": "101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+    "recoveryUnlockKey": "a0d65b2ce378955863780033fa8f3e5b2659bed12ad15f57b485ec071975fc07",
+    "recoveryProof": "075c2f7eb0a2c9694987b3536424b8b901f78f8ee39ec5d8772141f377be2740"
+  },
+  "recoveryKeyForms": {
+    "recoveryKey": "101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+    "words": [
+      "avoid",
+      "mass",
+      "luggage",
+      "choice",
+      "fabric",
+      "argue",
+      "gather",
+      "cash",
+      "brand",
+      "thought",
+      "elegant",
+      "dinner",
+      "acoustic",
+      "much",
+      "milk",
+      "lucky",
+      "change",
+      "deer",
+      "apart",
+      "february",
+      "ready",
+      "bird",
+      "reward",
+      "van"
+    ],
+    "code": "208H-44RM-2MB1-E60S-38DH-R78Y-3WG2-28H3-4GJJ-C9S8-54N2-PB1D-5RQR-KHT6",
+    "qrPayload": "zaman-recovery:1:208H44RM2MB1E60S38DHR78Y3WG228H34GJJC9S854N2PB1D5RQRKHT6"
+  },
   "files": {
     "key": {
       "id": "0192f7a0-0000-7000-8000-000000000004",
