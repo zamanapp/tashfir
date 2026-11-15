@@ -28,15 +28,15 @@ const HASH_LABEL = utf8('tashfir-registry-entry-hash-v1')
 export const REGISTRY_HASH_LENGTH = 32
 
 export type RegistryEntryKind = 'publish' | 'revoke' | 'reset'
-export type RegistryKeyPurpose = 'identity' | 'account-kem'
+export type RegistryKeyPurpose = 'signing' | 'encryption'
 export type RevocationReason = 'lost_device' | 'reset' | 'superseded'
 
 /**
- * - `publish`: adds a public key. The first entry of a chain publishes the identity key and signs
- *   itself. A later identity key is signed by an active identity key (the old one), so contacts
+ * - `publish`: adds a public key. The first entry of a chain publishes the signing key and signs
+ *   itself. A later signing key is signed by an active signing key (the old one), so contacts
  *   see a key change, not an unknown key.
  * - `revoke`: ends a key, with a reason. A client does not wrap to a revoked key.
- * - `reset`: an account reset with no old key to sign with. It publishes a new identity key that
+ * - `reset`: an account reset with no old key to sign with. It publishes a new signing key that
  *   signs itself and revokes every earlier key. Clients show it as a reset, never as a rotation.
  */
 export interface RegistryEntry {
@@ -54,7 +54,7 @@ export interface RegistryEntry {
   publicKey: Uint8Array | null
   /** Set for `revoke`. */
   revocationReason: RevocationReason | null
-  /** The identity key that signs the entry. */
+  /** The signing key that signs the entry. */
   signerKeyId: string
 }
 
@@ -73,7 +73,7 @@ const FIELD = {
 } as const
 
 const KINDS: readonly RegistryEntryKind[] = ['publish', 'revoke', 'reset']
-const PURPOSES: readonly RegistryKeyPurpose[] = ['identity', 'account-kem']
+const PURPOSES: readonly RegistryKeyPurpose[] = ['signing', 'encryption']
 const REASONS: readonly RevocationReason[] = ['lost_device', 'reset', 'superseded']
 
 /** The algorithm and the public key length that each purpose allows. */
@@ -81,11 +81,11 @@ const PURPOSE_KEYS: Record<
   RegistryKeyPurpose,
   { algorithms: readonly string[]; publicKeyLength: number }
 > = {
-  'identity': {
+  signing: {
     algorithms: Object.keys(SIGNATURE_ALGORITHMS),
     publicKeyLength: SIGNING_PUBLIC_KEY_LENGTH,
   },
-  'account-kem': {
+  encryption: {
     algorithms: Object.keys(KEM_ALGORITHMS),
     publicKeyLength: X_WING_PUBLIC_KEY_LENGTH,
   },
@@ -130,8 +130,8 @@ function checkEntryShape(entry: RegistryEntry): void {
     }
     if (!REASONS.includes(entry.revocationReason)) throw rejected('Unknown revocation reason')
   }
-  if (entry.kind === 'reset' && entry.purpose !== 'identity') {
-    throw rejected('A reset publishes an identity key')
+  if (entry.kind === 'reset' && entry.purpose !== 'signing') {
+    throw rejected('A reset publishes a signing key')
   }
 }
 
@@ -209,29 +209,29 @@ export async function registryEntryHash(
 
 export async function signRegistryEntry(
   provider: CryptoProvider,
-  identitySecretKey: Uint8Array,
+  signingSecretKey: Uint8Array,
   entryBytes: Uint8Array
 ): Promise<Uint8Array> {
-  return sign(provider, identitySecretKey, entryBytes, SIGNATURE_CONTEXT)
+  return sign(provider, signingSecretKey, entryBytes, SIGNATURE_CONTEXT)
 }
 
 /** The signature with fixed ML-DSA randomness. Only the known-answer vectors use it. */
 export async function signRegistryEntryWith(
   provider: CryptoProvider,
-  identitySecretKey: Uint8Array,
+  signingSecretKey: Uint8Array,
   entryBytes: Uint8Array,
   options: { randomness?: Uint8Array }
 ): Promise<Uint8Array> {
-  return signWith(provider, identitySecretKey, entryBytes, SIGNATURE_CONTEXT, options)
+  return signWith(provider, signingSecretKey, entryBytes, SIGNATURE_CONTEXT, options)
 }
 
 export async function verifyRegistryEntrySignature(
   provider: CryptoProvider,
-  identityPublicKey: Uint8Array,
+  signingPublicKey: Uint8Array,
   entryBytes: Uint8Array,
   signature: Uint8Array
 ): Promise<boolean> {
-  return verify(provider, identityPublicKey, entryBytes, signature, SIGNATURE_CONTEXT)
+  return verify(provider, signingPublicKey, entryBytes, signature, SIGNATURE_CONTEXT)
 }
 
 export interface RegistryKey {
@@ -264,10 +264,10 @@ export interface SignedRegistryEntry {
   signature: Uint8Array
 }
 
-function activeIdentityKey(chain: RegistryChain, keyId: string): RegistryKey {
+function activeSigningKey(chain: RegistryChain, keyId: string): RegistryKey {
   const key = chain.keys.get(keyId)
-  if (!key || key.purpose !== 'identity' || key.revocation) {
-    throw rejected('The signer is not an active identity key of the account')
+  if (!key || key.purpose !== 'signing' || key.revocation) {
+    throw rejected('The signer is not an active signing key of the account')
   }
   return key
 }
@@ -302,7 +302,7 @@ export async function appendRegistryEntry(
     if (!revoked || revoked.purpose !== entry.purpose) throw rejected('No such key to revoke')
     if (revoked.revocation) throw rejected('The key is revoked already')
     if (entry.signerKeyId === entry.keyId) throw rejected('A key cannot revoke itself')
-    signerPublicKey = activeIdentityKey(chain, entry.signerKeyId).publicKey
+    signerPublicKey = activeSigningKey(chain, entry.signerKeyId).publicKey
     keys.set(entry.keyId, {
       ...revoked,
       revocation: { reason: entry.revocationReason!, sequence: entry.sequence },
@@ -321,13 +321,13 @@ export async function appendRegistryEntry(
       }
       signerPublicKey = entry.publicKey!
     } else if (entry.sequence === 0) {
-      if (entry.purpose !== 'identity' || !selfSigned) {
-        throw rejected('The first entry publishes the identity key and signs itself')
+      if (entry.purpose !== 'signing' || !selfSigned) {
+        throw rejected('The first entry publishes the signing key and signs itself')
       }
       signerPublicKey = entry.publicKey!
     } else {
       if (selfSigned) throw rejected('Only the first entry and a reset sign themselves')
-      signerPublicKey = activeIdentityKey(chain, entry.signerKeyId).publicKey
+      signerPublicKey = activeSigningKey(chain, entry.signerKeyId).publicKey
     }
     keys.set(entry.keyId, {
       keyId: entry.keyId,

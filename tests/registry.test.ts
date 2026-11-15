@@ -20,7 +20,7 @@ import { providers } from './providers.ts'
 
 const accountId = '0192f7a0-0000-7000-8000-0000000000a1'
 const otherAccountId = '0192f7a0-0000-7000-8000-0000000000a2'
-const identityKeyId = '0192f7a0-0000-7000-8000-0000000000b1'
+const signingKeyId = '0192f7a0-0000-7000-8000-0000000000b1'
 const kemKeyId = '0192f7a0-0000-7000-8000-0000000000b2'
 const rotatedIdentityKeyId = '0192f7a0-0000-7000-8000-0000000000b3'
 const resetIdentityKeyId = '0192f7a0-0000-7000-8000-0000000000b4'
@@ -45,7 +45,7 @@ function publishEntry(
     sequence: chain.nextSequence,
     previousHash: chain.headHash,
     kind: 'publish',
-    algorithm: fields.purpose === 'identity' ? 'mldsa65-ed25519' : 'xwing-draft-11',
+    algorithm: fields.purpose === 'signing' ? 'mldsa65-ed25519' : 'xwing-draft-11',
     revocationReason: null,
     ...fields,
   }
@@ -76,11 +76,11 @@ describe('registry entry encoding', () => {
     previousHash: new Uint8Array(32).fill(7),
     kind: 'revoke',
     keyId: kemKeyId,
-    purpose: 'account-kem',
+    purpose: 'encryption',
     algorithm: null,
     publicKey: null,
     revocationReason: 'lost_device',
-    signerKeyId: identityKeyId,
+    signerKeyId: signingKeyId,
   }
 
   test('round trips, and the format version is the first field', () => {
@@ -126,7 +126,7 @@ describe('registry entry encoding', () => {
 
 describe.each(providers)('registry chain ($name)', (provider) => {
   test('a full life: publish, rotate, revoke, reset', async () => {
-    const identity = await generateSigningKeyPair(provider)
+    const signingKey = await generateSigningKeyPair(provider)
     const kem = await generateKemKeyPair(provider)
     const rotatedIdentity = await generateSigningKeyPair(provider)
     const resetIdentity = await generateSigningKeyPair(provider)
@@ -142,48 +142,48 @@ describe.each(providers)('registry chain ($name)', (provider) => {
     }
 
     await append(
-      identity,
+      signingKey,
       publishEntry(chain, {
-        keyId: identityKeyId,
-        purpose: 'identity',
-        publicKey: identity.publicKey,
-        signerKeyId: identityKeyId,
+        keyId: signingKeyId,
+        purpose: 'signing',
+        publicKey: signingKey.publicKey,
+        signerKeyId: signingKeyId,
       })
     )
     await append(
-      identity,
+      signingKey,
       publishEntry(chain, {
         keyId: kemKeyId,
-        purpose: 'account-kem',
+        purpose: 'encryption',
         publicKey: kem.publicKey,
-        signerKeyId: identityKeyId,
+        signerKeyId: signingKeyId,
       })
     )
-    // A rotation: the old identity key signs the new one, then the new one revokes the old.
+    // A rotation: the old signing key signs the new one, then the new one revokes the old.
     await append(
-      identity,
+      signingKey,
       publishEntry(chain, {
         keyId: rotatedIdentityKeyId,
-        purpose: 'identity',
+        purpose: 'signing',
         publicKey: rotatedIdentity.publicKey,
-        signerKeyId: identityKeyId,
+        signerKeyId: signingKeyId,
       })
     )
     await append(
       rotatedIdentity,
       revokeEntry(chain, {
-        keyId: identityKeyId,
-        purpose: 'identity',
+        keyId: signingKeyId,
+        purpose: 'signing',
         signerKeyId: rotatedIdentityKeyId,
       })
     )
-    expect(chain.keys.get(identityKeyId)?.revocation).toEqual({ reason: 'superseded', sequence: 3 })
+    expect(chain.keys.get(signingKeyId)?.revocation).toEqual({ reason: 'superseded', sequence: 3 })
     expect(chain.keys.get(kemKeyId)?.revocation).toBeNull()
 
     await append(resetIdentity, {
       ...publishEntry(chain, {
         keyId: resetIdentityKeyId,
-        purpose: 'identity',
+        purpose: 'signing',
         publicKey: resetIdentity.publicKey,
         signerKeyId: resetIdentityKeyId,
       }),
@@ -201,26 +201,26 @@ describe.each(providers)('registry chain ($name)', (provider) => {
 
   describe('rejections', () => {
     async function startedChain() {
-      const identity = await generateSigningKeyPair(provider)
+      const signingKey = await generateSigningKeyPair(provider)
       const first = await signed(
         provider,
-        identity,
+        signingKey,
         publishEntry(emptyRegistryChain(accountId), {
-          keyId: identityKeyId,
-          purpose: 'identity',
-          publicKey: identity.publicKey,
-          signerKeyId: identityKeyId,
+          keyId: signingKeyId,
+          purpose: 'signing',
+          publicKey: signingKey.publicKey,
+          signerKeyId: signingKeyId,
         })
       )
       const { chain } = await appendRegistryEntry(provider, emptyRegistryChain(accountId), first)
       const kem = await generateKemKeyPair(provider)
       const kemEntry = publishEntry(chain, {
         keyId: kemKeyId,
-        purpose: 'account-kem',
+        purpose: 'encryption',
         publicKey: kem.publicKey,
-        signerKeyId: identityKeyId,
+        signerKeyId: signingKeyId,
       })
-      return { identity, chain, kemEntry }
+      return { signingKey, chain, kemEntry }
     }
 
     const rejectedCode = async (chain: RegistryChain, entry: SignedRegistryEntry) =>
@@ -230,39 +230,39 @@ describe.each(providers)('registry chain ($name)', (provider) => {
       )
 
     test('a first entry that does not sign itself', async () => {
-      const identity = await generateSigningKeyPair(provider)
+      const signingKey = await generateSigningKeyPair(provider)
       const kem = await generateKemKeyPair(provider)
       const entry = publishEntry(emptyRegistryChain(accountId), {
         keyId: kemKeyId,
-        purpose: 'account-kem',
+        purpose: 'encryption',
         publicKey: kem.publicKey,
-        signerKeyId: identityKeyId,
+        signerKeyId: signingKeyId,
       })
       expect(
-        await rejectedCode(emptyRegistryChain(accountId), await signed(provider, identity, entry))
+        await rejectedCode(emptyRegistryChain(accountId), await signed(provider, signingKey, entry))
       ).toBe('E_REGISTRY_REJECTED')
     })
 
     test('a wrong sequence, a wrong previous hash, another account', async () => {
-      const { identity, chain, kemEntry } = await startedChain()
+      const { signingKey, chain, kemEntry } = await startedChain()
       for (const changed of [
         { ...kemEntry, sequence: 2 },
         { ...kemEntry, previousHash: new Uint8Array(32) },
         { ...kemEntry, accountId: otherAccountId },
       ]) {
-        expect(await rejectedCode(chain, await signed(provider, identity, changed))).toBe(
+        expect(await rejectedCode(chain, await signed(provider, signingKey, changed))).toBe(
           'E_REGISTRY_REJECTED'
         )
       }
     })
 
     test('a signature of another key, and changed bytes', async () => {
-      const { chain, kemEntry, identity } = await startedChain()
+      const { chain, kemEntry, signingKey } = await startedChain()
       const stranger = await generateSigningKeyPair(provider)
       expect(await rejectedCode(chain, await signed(provider, stranger, kemEntry))).toBe(
         'E_REGISTRY_REJECTED'
       )
-      const good = await signed(provider, identity, kemEntry)
+      const good = await signed(provider, signingKey, kemEntry)
       const otherEntryBytes = encodeRegistryEntry({ ...kemEntry, keyId: rotatedIdentityKeyId })
       expect(
         await rejectedCode(chain, { entryBytes: otherEntryBytes, signature: good.signature })
@@ -270,11 +270,11 @@ describe.each(providers)('registry chain ($name)', (provider) => {
     })
 
     test('a self-signed publish after the first entry, and a known key ID', async () => {
-      const { chain, identity } = await startedChain()
+      const { chain, signingKey } = await startedChain()
       const extraIdentity = await generateSigningKeyPair(provider)
       const selfSigned = publishEntry(chain, {
         keyId: rotatedIdentityKeyId,
-        purpose: 'identity',
+        purpose: 'signing',
         publicKey: extraIdentity.publicKey,
         signerKeyId: rotatedIdentityKeyId,
       })
@@ -282,18 +282,18 @@ describe.each(providers)('registry chain ($name)', (provider) => {
         'E_REGISTRY_REJECTED'
       )
       const known = publishEntry(chain, {
-        keyId: identityKeyId,
-        purpose: 'identity',
+        keyId: signingKeyId,
+        purpose: 'signing',
         publicKey: extraIdentity.publicKey,
-        signerKeyId: identityKeyId,
+        signerKeyId: signingKeyId,
       })
-      expect(await rejectedCode(chain, await signed(provider, identity, known))).toBe(
+      expect(await rejectedCode(chain, await signed(provider, signingKey, known))).toBe(
         'E_REGISTRY_REJECTED'
       )
     })
 
     test('a revoked signer, and a revoke of an unknown key', async () => {
-      const { chain: started, identity } = await startedChain()
+      const { chain: started, signingKey } = await startedChain()
       const rotated = await generateSigningKeyPair(provider)
       let chain = (
         await appendRegistryEntry(
@@ -301,12 +301,12 @@ describe.each(providers)('registry chain ($name)', (provider) => {
           started,
           await signed(
             provider,
-            identity,
+            signingKey,
             publishEntry(started, {
               keyId: rotatedIdentityKeyId,
-              purpose: 'identity',
+              purpose: 'signing',
               publicKey: rotated.publicKey,
-              signerKeyId: identityKeyId,
+              signerKeyId: signingKeyId,
             })
           )
         )
@@ -319,8 +319,8 @@ describe.each(providers)('registry chain ($name)', (provider) => {
             provider,
             rotated,
             revokeEntry(chain, {
-              keyId: identityKeyId,
-              purpose: 'identity',
+              keyId: signingKeyId,
+              purpose: 'signing',
               signerKeyId: rotatedIdentityKeyId,
             })
           )
@@ -330,16 +330,16 @@ describe.each(providers)('registry chain ($name)', (provider) => {
       const kem = await generateKemKeyPair(provider)
       const byRevokedKey = publishEntry(chain, {
         keyId: kemKeyId,
-        purpose: 'account-kem',
+        purpose: 'encryption',
         publicKey: kem.publicKey,
-        signerKeyId: identityKeyId,
+        signerKeyId: signingKeyId,
       })
-      expect(await rejectedCode(chain, await signed(provider, identity, byRevokedKey))).toBe(
+      expect(await rejectedCode(chain, await signed(provider, signingKey, byRevokedKey))).toBe(
         'E_REGISTRY_REJECTED'
       )
       const unknownKey = revokeEntry(chain, {
         keyId: kemKeyId,
-        purpose: 'account-kem',
+        purpose: 'encryption',
         signerKeyId: rotatedIdentityKeyId,
       })
       expect(await rejectedCode(chain, await signed(provider, rotated, unknownKey))).toBe(

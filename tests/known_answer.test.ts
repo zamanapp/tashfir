@@ -161,7 +161,7 @@ describe.each(providers)('known-answer vectors of suite 0x01 ($name)', (provider
       for (const vectorEntry of registry.entries) {
         const signature = await signRegistryEntryWith(
           provider,
-          hex(registry.identity.secretKey),
+          hex(registry.signingKey.secretKey),
           hex(vectorEntry.entryBytes),
           { randomness: hex(vectorEntry.randomness) }
         )

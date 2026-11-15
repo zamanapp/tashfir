@@ -65,13 +65,13 @@ const fileLengths = [
 ]
 
 const registryAccountId = '0192f7a0-0000-7000-8000-0000000000c1'
-const registryIdentity = {
+const registrySigningKey = {
   id: '0192f7a0-0000-7000-8000-0000000000c2',
   secretKey: fixedBytes(64, 0x30),
 }
 const registryKem = { id: '0192f7a0-0000-7000-8000-0000000000c3', secretKey: fixedBytes(32, 0x58) }
 const registrySignatureRandomness = [fixedBytes(32, 0xd8), fixedBytes(32, 0xe8)]
-const registryIdentityPublicKey = await signingPublicKey(provider, registryIdentity.secretKey)
+const registrySigningPublicKey = await signingPublicKey(provider, registrySigningKey.secretKey)
 const registryKemPublicKey = await provider.xWingPublicKey(registryKem.secretKey)
 
 const registryEntries: RegistryEntry[] = [
@@ -81,12 +81,12 @@ const registryEntries: RegistryEntry[] = [
     sequence: 0,
     previousHash: null,
     kind: 'publish',
-    keyId: registryIdentity.id,
-    purpose: 'identity',
+    keyId: registrySigningKey.id,
+    purpose: 'signing',
     algorithm: 'mldsa65-ed25519',
-    publicKey: registryIdentityPublicKey,
+    publicKey: registrySigningPublicKey,
     revocationReason: null,
-    signerKeyId: registryIdentity.id,
+    signerKeyId: registrySigningKey.id,
   },
 ]
 const firstEntryBytes = encodeRegistryEntry(registryEntries[0]!)
@@ -97,11 +97,11 @@ registryEntries.push({
   previousHash: await registryEntryHash(provider, firstEntryBytes),
   kind: 'publish',
   keyId: registryKem.id,
-  purpose: 'account-kem',
+  purpose: 'encryption',
   algorithm: 'xwing-draft-11',
   publicKey: registryKemPublicKey,
   revocationReason: null,
-  signerKeyId: registryIdentity.id,
+  signerKeyId: registrySigningKey.id,
 })
 
 const vectors = {
@@ -162,10 +162,10 @@ const vectors = {
   },
   registry: {
     accountId: registryAccountId,
-    identity: {
-      id: registryIdentity.id,
-      secretKey: toHex(registryIdentity.secretKey),
-      publicKey: toHex(registryIdentityPublicKey),
+    signingKey: {
+      id: registrySigningKey.id,
+      secretKey: toHex(registrySigningKey.secretKey),
+      publicKey: toHex(registrySigningPublicKey),
     },
     kem: {
       id: registryKem.id,
@@ -181,7 +181,7 @@ const vectors = {
           hash: toHex(await registryEntryHash(provider, entryBytes)),
           randomness: toHex(randomness),
           signature: toHex(
-            await signRegistryEntryWith(provider, registryIdentity.secretKey, entryBytes, {
+            await signRegistryEntryWith(provider, registrySigningKey.secretKey, entryBytes, {
               randomness,
             })
           ),
