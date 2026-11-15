@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/zamanapp/tashfir/compare/v1.2.0...v1.3.0) (2026-11-15)
+
+
+### Features
+
+* account keys at registration and the recovery key forms ([6ee60ee](https://github.com/zamanapp/tashfir/commit/6ee60ee2b1bf79521278c5018e917361f95e86f2))
+
 # [1.2.0](https://github.com/zamanapp/tashfir/compare/v1.1.0...v1.2.0) (2026-11-15)
 
 
