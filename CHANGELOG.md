@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/zamanapp/tashfir/compare/v1.3.0...v1.4.0) (2026-11-19)
+
+
+### Features
+
+* keep the account key on a device ([344efba](https://github.com/zamanapp/tashfir/commit/344efba48b79c4877e922e24989cccbf68d80254))
+
 # [1.3.0](https://github.com/zamanapp/tashfir/compare/v1.2.0...v1.3.0) (2026-11-15)
 
 
