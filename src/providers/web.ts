@@ -193,3 +193,8 @@ export class WebCryptoProvider implements CryptoProvider {
     }
   }
 }
+
+export {
+  IndexedDbDeviceKeyHolder,
+  webCryptoDeviceWrappingKey,
+} from '../device_holders/indexed_db.ts'

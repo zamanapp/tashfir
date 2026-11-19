@@ -13,6 +13,7 @@ export {
 export { signWith } from './signature.ts'
 export { signRegistryEntryWith } from './registry.ts'
 export { encryptFileWith } from './stream.ts'
+export { sealDeviceKeyEntryWith } from './device_keys.ts'
 export { hkdfExtract, hkdfExpand } from './hkdf.ts'
 export { pad, unpad } from './padding.ts'
 export { encodeContext } from './context.ts'

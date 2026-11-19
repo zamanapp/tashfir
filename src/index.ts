@@ -100,5 +100,18 @@ export {
   openRecoveryKeyCopy,
   type RecoveryKit,
 } from './recovery.ts'
+export {
+  DEVICE_KEY_FORMAT_VERSION,
+  rawDeviceWrappingKey,
+  deviceKeyAssociatedData,
+  openDeviceKeyEntry,
+  keepAccountKeyOnDevice,
+  openAccountKeyOnDevice,
+  forgetAccountKeyOnDevice,
+  keepOnlyAccountOnDevice,
+  type DeviceKeyEntry,
+  type DeviceKeyHolder,
+  type DeviceWrappingKey,
+} from './device_keys.ts'
 export { hkdf } from './hkdf.ts'
 export { storageKey } from './storage_key.ts'

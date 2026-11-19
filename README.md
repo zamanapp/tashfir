@@ -20,9 +20,9 @@ Pin the exact version: a new release can add a suite, and every runtime of an ap
 
 | Import | Contents |
 | ------ | -------- |
-| `@zamanapp/tashfir` | The formats: envelope, key wraps, HPKE wraps, composite signatures, STREAM files, CBOR, registry entries and their chain rules, the keys of a new account and their unlock wraps, the recovery key and its written forms, the suite registry |
+| `@zamanapp/tashfir` | The formats: envelope, key wraps, HPKE wraps, composite signatures, STREAM files, CBOR, registry entries and their chain rules, the keys of a new account and their unlock wraps, the recovery key and its written forms, the account key kept on a device (`keepAccountKeyOnDevice`, `openAccountKeyOnDevice` and the `DeviceKeyHolder` interface), the suite registry |
 | `@zamanapp/tashfir/node` | `NodeCryptoProvider`: Node `crypto` with OpenSSL 3.5 or later. For the server only. |
-| `@zamanapp/tashfir/web` | `WebCryptoProvider`: `@noble/post-quantum`, `@noble/curves` and WebCrypto. For the browser and the Electron renderer. |
+| `@zamanapp/tashfir/web` | `WebCryptoProvider`: `@noble/post-quantum`, `@noble/curves` and WebCrypto. For the browser and the Electron renderer. `IndexedDbDeviceKeyHolder`: the device key holder of the browser, with a non-extractable WebCrypto wrapping key in IndexedDB. |
 | `@zamanapp/tashfir/testing` | The same operations with injected randomness, for the test vectors only. Never import it in app code. |
 
 Never use the Node provider in Electron: the BoringSSL of Electron has no post-quantum algorithms.
@@ -57,6 +57,8 @@ The context goes into the associated data. A ciphertext opens only in its own bl
 | Account keys | `createAccountKeys`: the account key, a signing key pair, an X-Wing key pair, each secret key sealed under the account key (key-wrap context, the pair UUID), and the first two registry entries (the signing key signs itself, then the X-Wing key). | About 6 KB |
 | Password unlock wrap | A symmetric key wrap of the account key under HKDF-SHA-256(salt empty, the OPAQUE export key, `tashfir-password-unlock-v1`). The envelope header names the UUID of the unlock key, so the export key opens it. | 79 B |
 | Recovery key | 32 random bytes. Words: 24 English BIP-39 words. Code: Crockford base32 of the key ‖ the first 3 bytes of its SHA-256, 56 characters in groups of 4. QR: `zaman-recovery:1:` ‖ the code without dashes. Unlock key: HKDF-SHA-256(`tashfir-recovery-unlock-v1`). Proof for the server: HKDF-SHA-256(`tashfir-recovery-auth-v1`). | 24 words, 69 characters |
+
+| Device key entry | The account key kept on a device between restarts: version (1) ‖ nonce (12) ‖ AES-256-GCM of the account key ‖ tag (16), under the wrapping key of the device. Associated data: `tashfir-device-key-v1` ‖ deterministic CBOR map 0 format version, 1 account UUID, 2 account key UUID, 3 expiry (milliseconds since the epoch, or null for none). Each runtime keeps the wrapping key in its own safe place (WebCrypto non-extractable key, Keychain, Android Keystore, Electron `safeStorage`) behind `DeviceKeyHolder`. | 61 B |
 
 X-Wing follows `draft-connolly-cfrg-xwing-kem-11`. A new draft version is a new suite ID, never a change of suite `0x01`.
 

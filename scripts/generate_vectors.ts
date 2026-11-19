@@ -21,6 +21,11 @@ import {
 import { storageKey } from '../src/storage_key.ts'
 import { passwordUnlockKey } from '../src/account_keys.ts'
 import {
+  deviceKeyAssociatedData,
+  rawDeviceWrappingKey,
+  sealDeviceKeyEntryWith,
+} from '../src/device_keys.ts'
+import {
   recoveryKeyToCode,
   recoveryKeyToWords,
   recoveryProof,
@@ -210,6 +215,32 @@ const vectors = {
     recoveryUnlockKey: toHex((await recoveryUnlockKey(provider, recoveryKey, unlockKeyId)).bytes),
     recoveryProof: toHex(await recoveryProof(provider, recoveryKey)),
   },
+  deviceKey: await (async () => {
+    const wrappingKeyBytes = fixedBytes(32, 0xd0)
+    const nonce = fixedBytes(12, 0xd1)
+    const accountKey = { id: '0192f7a0-0000-7000-8000-0000000000d2', bytes: fixedBytes(32, 0xd3) }
+    const input = {
+      accountId: '0192f7a0-0000-7000-8000-0000000000d4',
+      accountKey,
+      expiresAt: 1_800_000_000_000,
+    }
+    const entry = await sealDeviceKeyEntryWith(
+      rawDeviceWrappingKey(provider, wrappingKeyBytes),
+      input,
+      nonce
+    )
+    return {
+      description:
+        'An account key kept on a device: version ‖ nonce ‖ AES-256-GCM under the wrapping key of the device, with the account, the key ID and the expiry as associated data.',
+      wrappingKey: toHex(wrappingKeyBytes),
+      nonce: toHex(nonce),
+      accountId: input.accountId,
+      accountKey: { id: accountKey.id, bytes: toHex(accountKey.bytes) },
+      expiresAt: input.expiresAt,
+      associatedData: toHex(deviceKeyAssociatedData({ ...input, accountKeyId: accountKey.id })),
+      sealed: toHex(entry.sealed),
+    }
+  })(),
   recoveryKeyForms: {
     recoveryKey: toHex(recoveryKey),
     words: recoveryKeyToWords(recoveryKey),

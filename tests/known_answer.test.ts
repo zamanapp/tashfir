@@ -16,6 +16,12 @@ import {
 } from '../src/registry.ts'
 import { passwordUnlockKey } from '../src/account_keys.ts'
 import {
+  deviceKeyAssociatedData,
+  openDeviceKeyEntry,
+  rawDeviceWrappingKey,
+  sealDeviceKeyEntryWith,
+} from '../src/device_keys.ts'
+import {
   recoveryKeyFromCode,
   recoveryKeyFromQrPayload,
   recoveryKeyFromWords,
@@ -187,6 +193,23 @@ describe.each(providers)('known-answer vectors of suite 0x01 ($name)', (provider
     expect(toHex((await passwordUnlockKey(provider, hex(exportKey), id)).bytes)).toBe(vectors.unlockKeys.passwordUnlockKey)
     expect(toHex((await recoveryUnlockKey(provider, hex(recoveryKey), id)).bytes)).toBe(vectors.unlockKeys.recoveryUnlockKey)
     expect(toHex(await recoveryProof(provider, hex(recoveryKey)))).toBe(vectors.unlockKeys.recoveryProof)
+  })
+
+  test('device key: an account key kept on a device', async () => {
+    const vector = vectors.deviceKey
+    const wrappingKey = rawDeviceWrappingKey(provider, hex(vector.wrappingKey))
+    const accountKey = { id: vector.accountKey.id, bytes: hex(vector.accountKey.bytes) }
+    const input = { accountId: vector.accountId, accountKey, expiresAt: vector.expiresAt }
+    expect(toHex(deviceKeyAssociatedData({ ...input, accountKeyId: accountKey.id }))).toBe(vector.associatedData)
+    const entry = await sealDeviceKeyEntryWith(wrappingKey, input, hex(vector.nonce))
+    expect(toHex(entry.sealed)).toBe(vector.sealed)
+    const opened = await openDeviceKeyEntry(wrappingKey, {
+      accountId: vector.accountId,
+      accountKeyId: accountKey.id,
+      expiresAt: vector.expiresAt,
+      sealed: hex(vector.sealed),
+    })
+    expect(toHex(opened.bytes)).toBe(vector.accountKey.bytes)
   })
 
   test('recovery key forms: words, code and QR payload', async () => {
