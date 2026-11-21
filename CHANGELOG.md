@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/zamanapp/tashfir/compare/v1.4.0...v1.5.0) (2026-11-21)
+
+
+### Features
+
+* the keys of a reset and the public key length of each purpose ([50864cb](https://github.com/zamanapp/tashfir/commit/50864cb431d07b0f909068fe3f062f670e09beab))
+
 # [1.4.0](https://github.com/zamanapp/tashfir/compare/v1.3.0...v1.4.0) (2026-11-19)
 
 
