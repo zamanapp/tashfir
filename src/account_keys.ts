@@ -1,4 +1,5 @@
 import { newKeyId, utf8 } from './bytes.ts'
+import { CryptoError } from './errors.ts'
 import { generateSymmetricKey, openBytes, readEnvelopeHeader, sealBytes, unwrapKey, wrapKey, type SymmetricKey } from './envelope.ts'
 import { generateKemKeyPair, type KemKeyPair } from './hpke.ts'
 import { hkdf } from './hkdf.ts'
@@ -106,17 +107,30 @@ export async function openSecretKey(
   return openBytes(provider, accountKey, wrappedSecretKey, { purpose: 'key-wrap', wrappedKeyId: pairId })
 }
 
+/** Where the registry chain of an account goes on: the next sequence and the hash before it. */
+export interface RegistryChainHead {
+  nextSequence: number
+  previousHash: Uint8Array
+}
+
 /**
- * Makes the keys of a new account on the device (encryption PRD §4.1): the account key, the
- * signing key pair and the encryption key pair, the password unlock wrap from the OPAQUE export
- * key, and the first two registry entries. The signing key signs both entries; the first entry
- * signs itself.
- *
- * `accountId` is the account UUID that the server chose at the start of the registration.
+ * The account key, the two key pairs, their wraps and the two registry entries that publish
+ * them. The first entry carries the signing key and signs itself; the second carries the
+ * encryption key and is signed by the new signing key.
  */
-export async function createAccountKeys(
+async function makeAccountKeys(
   provider: CryptoProvider,
-  { accountId, exportKey }: { accountId: string; exportKey: Uint8Array }
+  {
+    accountId,
+    exportKey,
+    version,
+    firstEntry,
+  }: {
+    accountId: string
+    exportKey: Uint8Array
+    version: number
+    firstEntry: { kind: 'publish' | 'reset'; sequence: number; previousHash: Uint8Array | null }
+  }
 ): Promise<AccountKeys> {
   const accountKey = generateSymmetricKey(provider)
   const signing: SigningKeyPair = await generateSigningKeyPair(provider)
@@ -137,9 +151,9 @@ export async function createAccountKeys(
   const first: RegistryEntry = {
     formatVersion: REGISTRY_FORMAT_VERSION,
     accountId,
-    sequence: 0,
-    previousHash: null,
-    kind: 'publish',
+    sequence: firstEntry.sequence,
+    previousHash: firstEntry.previousHash,
+    kind: firstEntry.kind,
     keyId: signingKeyPair.id,
     purpose: 'signing',
     algorithm: 'mldsa65-ed25519',
@@ -150,8 +164,9 @@ export async function createAccountKeys(
   const firstBytes = encodeRegistryEntry(first)
   const second: RegistryEntry = {
     ...first,
-    sequence: 1,
+    sequence: firstEntry.sequence + 1,
     previousHash: await registryEntryHash(provider, firstBytes),
+    kind: 'publish',
     keyId: encryptionKeyPair.id,
     purpose: 'encryption',
     algorithm: 'xwing-draft-11',
@@ -160,12 +175,12 @@ export async function createAccountKeys(
   const secondBytes = encodeRegistryEntry(second)
 
   const bundle: AccountKeyBundle = {
-    accountKeyVersion: { id: accountKey.id, version: 1 },
+    accountKeyVersion: { id: accountKey.id, version },
     keyPairs: await Promise.all(
       [signingKeyPair, encryptionKeyPair].map(async (pair) => ({
         id: pair.id,
         purpose: pair.purpose,
-        version: 1,
+        version,
         publicKey: pair.publicKey,
         wrappedSecretKey: await wrapSecretKey(provider, accountKey, pair),
       }))
@@ -177,4 +192,53 @@ export async function createAccountKeys(
     ],
   }
   return { accountKey, signingKeyPair, encryptionKeyPair, bundle }
+}
+
+/**
+ * Makes the keys of a new account on the device (encryption PRD §4.1): the account key, the
+ * signing key pair and the encryption key pair, the password unlock wrap from the OPAQUE export
+ * key, and the first two registry entries. The signing key signs both entries; the first entry
+ * signs itself.
+ *
+ * `accountId` is the account UUID that the server chose at the start of the registration.
+ */
+export async function createAccountKeys(
+  provider: CryptoProvider,
+  { accountId, exportKey }: { accountId: string; exportKey: Uint8Array }
+): Promise<AccountKeys> {
+  return makeAccountKeys(provider, {
+    accountId,
+    exportKey,
+    version: 1,
+    firstEntry: { kind: 'publish', sequence: 0, previousHash: null },
+  })
+}
+
+/**
+ * Makes the keys of a reset with only the recovery email (encryption PRD §4.4, case C) on the
+ * device that does the reset: a new account key (a new key, not a new version of the old one),
+ * new key pairs, the password unlock wrap of the new password, and two registry entries that go
+ * on from `chainHead`. The first is a `reset` entry: no old key can sign, so the new signing key
+ * signs itself, and the chain revokes every earlier key. The second publishes the encryption key.
+ *
+ * `version` is the next version number of the account key of the account.
+ */
+export async function createResetKeys(
+  provider: CryptoProvider,
+  {
+    accountId,
+    exportKey,
+    chainHead,
+    version,
+  }: { accountId: string; exportKey: Uint8Array; chainHead: RegistryChainHead; version: number }
+): Promise<AccountKeys> {
+  if (!Number.isSafeInteger(version) || version < 2) {
+    throw new CryptoError('E_INVALID_INPUT', 'A reset makes version 2 or later of the account key')
+  }
+  return makeAccountKeys(provider, {
+    accountId,
+    exportKey,
+    version,
+    firstEntry: { kind: 'reset', sequence: chainHead.nextSequence, previousHash: chainHead.previousHash },
+  })
 }

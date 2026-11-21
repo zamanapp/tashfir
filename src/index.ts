@@ -11,7 +11,7 @@ export {
   type SuiteState,
   type SignatureAlgorithm,
 } from './suites.ts'
-export { bytesToUuid, uuidToBytes, toHex, fromHex, equalBytes } from './bytes.ts'
+export { bytesToUuid, uuidToBytes, newKeyId, toHex, fromHex, equalBytes } from './bytes.ts'
 export { encodeCbor, decodeCbor } from './cbor.ts'
 export type { EnvelopeContext } from './context.ts'
 export {
@@ -66,6 +66,7 @@ export {
   emptyRegistryChain,
   appendRegistryEntry,
   replayRegistryChain,
+  publicKeyLengthOf,
   type RegistryEntry,
   type RegistryEntryKind,
   type RegistryKeyPurpose,
@@ -76,6 +77,7 @@ export {
 } from './registry.ts'
 export {
   createAccountKeys,
+  createResetKeys,
   passwordUnlockKey,
   wrapAccountKeyForPassword,
   openAccountKeyWithPassword,
@@ -84,6 +86,7 @@ export {
   type AccountKeys,
   type AccountKeyBundle,
   type AccountKeyPair,
+  type RegistryChainHead,
 } from './account_keys.ts'
 export {
   RECOVERY_KEY_LENGTH,

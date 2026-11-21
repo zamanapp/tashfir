@@ -76,9 +76,9 @@ export function bytesToUuid(bytes: Uint8Array): string {
 }
 
 /**
- * A new key UUID: version 7 (RFC 9562), like the row IDs of the backend. The 16 random bytes come
- * from the provider, so the UUID does not depend on a global random generator, which NativeScript
- * does not have.
+ * A new key UUID: version 7 (RFC 9562), like the row IDs of the backend. Give it
+ * `provider.randomBytes(16)`: the random bytes come from the provider, so the UUID does not depend
+ * on a global random generator, which NativeScript does not have.
  */
 export function newKeyId(random: Uint8Array): string {
   expectLength(random, 16, 'The random bytes of a UUID')

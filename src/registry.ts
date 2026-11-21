@@ -91,6 +91,13 @@ const PURPOSE_KEYS: Record<
   },
 }
 
+/** The length in bytes of a public key of each purpose, as an entry of suite `0x01` carries it. */
+export function publicKeyLengthOf(purpose: RegistryKeyPurpose): number {
+  const allowed = PURPOSE_KEYS[purpose]
+  if (!allowed) throw rejected('Unknown key purpose')
+  return allowed.publicKeyLength
+}
+
 function rejected(message: string): CryptoError {
   return new CryptoError('E_REGISTRY_REJECTED', message)
 }
